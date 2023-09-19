@@ -1,7 +1,7 @@
 # FIXED
 
 src/engr2350_msp432.obj: ../src/engr2350_msp432.c
-src/engr2350_msp432.obj: /Users/nickylin/Dropbox/Mac/Downloads/lab1_template/inc/engr2350_msp432.h
+src/engr2350_msp432.obj: /Users/nickylin/Dropbox/Mac/Downloads/workspace/ENGR-2350/lab1/inc/engr2350_msp432.h
 src/engr2350_msp432.obj: /Applications/ti/ccs1240/ccs/tools/compiler/ti-cgt-arm_20.2.7.LTS/include/stdio.h
 src/engr2350_msp432.obj: /Applications/ti/ccs1240/ccs/tools/compiler/ti-cgt-arm_20.2.7.LTS/include/_ti_config.h
 src/engr2350_msp432.obj: /Applications/ti/ccs1240/ccs/tools/compiler/ti-cgt-arm_20.2.7.LTS/include/linkage.h
@@ -59,7 +59,7 @@ src/engr2350_msp432.obj: /Applications/ti/simplelink_msp432p4_sdk_3_40_01_02/sou
 
 ../src/engr2350_msp432.c:
 
-/Users/nickylin/Dropbox/Mac/Downloads/lab1_template/inc/engr2350_msp432.h:
+/Users/nickylin/Dropbox/Mac/Downloads/workspace/ENGR-2350/lab1/inc/engr2350_msp432.h:
 
 /Applications/ti/ccs1240/ccs/tools/compiler/ti-cgt-arm_20.2.7.LTS/include/stdio.h:
 

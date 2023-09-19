@@ -1,7 +1,7 @@
 # FIXED
 
 main.obj: ../main.c
-main.obj: /Users/nickylin/Dropbox/Mac/Downloads/lab1_template/inc/engr2350_msp432.h
+main.obj: /Users/nickylin/Dropbox/Mac/Downloads/workspace/ENGR-2350/lab1/inc/engr2350_msp432.h
 main.obj: /Applications/ti/ccs1240/ccs/tools/compiler/ti-cgt-arm_20.2.7.LTS/include/stdio.h
 main.obj: /Applications/ti/ccs1240/ccs/tools/compiler/ti-cgt-arm_20.2.7.LTS/include/_ti_config.h
 main.obj: /Applications/ti/ccs1240/ccs/tools/compiler/ti-cgt-arm_20.2.7.LTS/include/linkage.h
@@ -56,11 +56,11 @@ main.obj: /Applications/ti/simplelink_msp432p4_sdk_3_40_01_02/source/ti/devices/
 main.obj: /Applications/ti/simplelink_msp432p4_sdk_3_40_01_02/source/ti/devices/msp432p4xx/driverlib/wdt_a.h
 main.obj: /Applications/ti/simplelink_msp432p4_sdk_3_40_01_02/source/ti/devices/msp432p4xx/driverlib/sysctl.h
 main.obj: /Applications/ti/simplelink_msp432p4_sdk_3_40_01_02/source/ti/devices/msp432p4xx/driverlib/flash.h
-main.obj: /Users/nickylin/Dropbox/Mac/Downloads/lab1_template/inc/lab1lib.h
+main.obj: /Users/nickylin/Dropbox/Mac/Downloads/workspace/ENGR-2350/lab1/inc/lab1lib.h
 
 ../main.c:
 
-/Users/nickylin/Dropbox/Mac/Downloads/lab1_template/inc/engr2350_msp432.h:
+/Users/nickylin/Dropbox/Mac/Downloads/workspace/ENGR-2350/lab1/inc/engr2350_msp432.h:
 
 /Applications/ti/ccs1240/ccs/tools/compiler/ti-cgt-arm_20.2.7.LTS/include/stdio.h:
 
@@ -170,5 +170,5 @@ main.obj: /Users/nickylin/Dropbox/Mac/Downloads/lab1_template/inc/lab1lib.h
 
 /Applications/ti/simplelink_msp432p4_sdk_3_40_01_02/source/ti/devices/msp432p4xx/driverlib/flash.h:
 
-/Users/nickylin/Dropbox/Mac/Downloads/lab1_template/inc/lab1lib.h:
+/Users/nickylin/Dropbox/Mac/Downloads/workspace/ENGR-2350/lab1/inc/lab1lib.h:
 

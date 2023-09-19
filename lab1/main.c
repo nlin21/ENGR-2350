@@ -44,8 +44,6 @@ void GPIOInit(){
     GPIO_setAsOutputPin(GPIO_PORT_P8, GPIO_PIN0 | GPIO_PIN5); // LEDFL, LEDFR
     GPIO_setAsOutputPin(GPIO_PORT_P3, GPIO_PIN7 | GPIO_PIN6); // Left On/Off, Right On/Off
     GPIO_setAsOutputPin(GPIO_PORT_P5, GPIO_PIN4 | GPIO_PIN5); // Left Direction, Right Direction
-
-    init_Sequence();
 }
 
 void TestIO(){
@@ -85,27 +83,32 @@ void TestIO(){
             // Test Right Motor
             // Test_Motor(1);
         }
-
     }
 }
 
-void ControlSystem(){
+void ControlSystem() {
+    GPIO_setOutputHighOnPin(GPIO_PORT_P8, GPIO_PIN0);
+    GPIO_setOutputLowOnPin(GPIO_PORT_P8, GPIO_PIN5);
+
     // Infinite Loop
     while(1) {
         // Check SS1 state
         ss1 = GPIO_getInputPinValue(GPIO_PORT_P3, GPIO_PIN5);
+
         if (ss1 == 1) { // SS1 is on
             // Has Pattern Started?
-            if (status_Sequence() == 100) {     // Pattern has not started
-                run_Sequence();                 // Start Pattern
-            } else {                                                    // Pattern has started
-                if (status_Sequence() == get_SequenceLength()) {        // Is Pattern complete?
-                    GPIO_setOutputHighOnPin(GPIO_PORT_P6, GPIO_PIN0);
-                    GPIO_setOutputLowOnPin(GPIO_PORT_P6, GPIO_PIN1);    // Turn BiLED1 Green
-                } else {
-                    GPIO_setOutputHighOnPin(GPIO_PORT_P6, GPIO_PIN1);
-                    GPIO_setOutputLowOnPin(GPIO_PORT_P6, GPIO_PIN0);    // Turn BiLED1 Red
-                }
+            if (status_Sequence() == 100) {
+                run_Sequence();
+
+                GPIO_setOutputLowOnPin(GPIO_PORT_P6, GPIO_PIN0);   // Turn BiLED1 Green
+                GPIO_setOutputHighOnPin(GPIO_PORT_P6, GPIO_PIN1);
+
+                while (status_Sequence() != 100) {}
+
+                GPIO_setOutputLowOnPin(GPIO_PORT_P6, GPIO_PIN1);
+                GPIO_setOutputHighOnPin(GPIO_PORT_P6, GPIO_PIN0);    // Turn BiLED1 Red
+
+                clear_Sequence();
             }
         } else { // SS2 is Off
             // Turn BiLED OFF
@@ -113,33 +116,55 @@ void ControlSystem(){
             GPIO_setOutputHighOnPin(GPIO_PORT_P6, GPIO_PIN1);
 
             // Any BMPx Pressed?
-            bmp0 = GPIO_getInputPinValue(GPIO_PORT_P4, GPIO_PIN0);
-            bmp1 = GPIO_getInputPinValue(GPIO_PORT_P4, GPIO_PIN2);
-            bmp2 = GPIO_getInputPinValue(GPIO_PORT_P4, GPIO_PIN3);
-            bmp3 = GPIO_getInputPinValue(GPIO_PORT_P4, GPIO_PIN5);
-            bmp4 = GPIO_getInputPinValue(GPIO_PORT_P4, GPIO_PIN6);
-            bmp5 = GPIO_getInputPinValue(GPIO_PORT_P4, GPIO_PIN7);
+            bmp0 = !(GPIO_getInputPinValue(GPIO_PORT_P4, GPIO_PIN0));
+            bmp1 = !(GPIO_getInputPinValue(GPIO_PORT_P4, GPIO_PIN2));
+            bmp2 = !(GPIO_getInputPinValue(GPIO_PORT_P4, GPIO_PIN3));
+            bmp3 = !(GPIO_getInputPinValue(GPIO_PORT_P4, GPIO_PIN5));
+            bmp4 = !(GPIO_getInputPinValue(GPIO_PORT_P4, GPIO_PIN6));
+            bmp5 = !(GPIO_getInputPinValue(GPIO_PORT_P4, GPIO_PIN7));
 
             if (bmp0 || bmp1 || bmp2 || bmp3 || bmp4 || bmp5) {
+                __delay_cycles(480e3);
                 if (bmp0) {
-                    record_Segment(2);
-                } else if (bmp1) {
-                    record_Segment(1);
-                } else if (bmp2) {
-                    record_Segment(0);
-                } else if (bmp3) {
-                    record_Segment(127);
-                } else if (bmp4) {
-                    record_Segment(-1);
-                } else if (bmp5) {
+                    __delay_cycles(480e3);
+                    printf("bmp0: %u\r\n", bmp0);
                     record_Segment(-2);
+                    __delay_cycles(480e3);
+                } else if (bmp1) {
+                    __delay_cycles(480e3);
+                    printf("bmp1: %u\r\n", bmp1);
+                    record_Segment(-1);
+                    __delay_cycles(480e3);
+                } else if (bmp2) {
+                    __delay_cycles(480e3);
+                    printf("bmp2: %u\r\n", bmp2);
+                    record_Segment(0);
+                    __delay_cycles(480e3);
+                } else if (bmp3) {
+                    __delay_cycles(480e3);
+                    printf("bmp3: %u\r\n", bmp3);
+                    record_Segment(127);
+                    __delay_cycles(480e3);
+                } else if (bmp4) {
+                    __delay_cycles(480e3);
+                    printf("bmp4: %u\r\n", bmp4);
+                    record_Segment(1);
+                    __delay_cycles(480e3);
+                } else if (bmp5) {
+                    __delay_cycles(480e3);
+                    printf("bmp5: %u\r\n", bmp5);
+                    record_Segment(2);
+                    __delay_cycles(480e3);
                 }
                 GPIO_toggleOutputOnPin(GPIO_PORT_P8, GPIO_PIN0 | GPIO_PIN5);
+                __delay_cycles(480e3);
             } else { // No
                 // PB1 Pressed?
                 pb1 = GPIO_getInputPinValue(GPIO_PORT_P5, GPIO_PIN6);
                 if (pb1) { // Yes
+                    __delay_cycles(480e3);
                     pop_Segment();  // Remove Last Segment
+                    __delay_cycles(480e3);
                 }
             }
         }
