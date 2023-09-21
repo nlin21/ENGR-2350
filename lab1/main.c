@@ -1,7 +1,7 @@
 // Lab 1
 // ENGR-2350
-// Name: Nicky Lin
-// RIN: 662041711
+// Name: Nicky Lin, Tyler O'Brien
+// RIN: 662041711, 662051022
 
 #include "engr2350_msp432.h"
 #include "lab1lib.h"
@@ -90,39 +90,37 @@ void ControlSystem() {
     GPIO_setOutputHighOnPin(GPIO_PORT_P8, GPIO_PIN0);
     GPIO_setOutputLowOnPin(GPIO_PORT_P8, GPIO_PIN5);
 
-    // Infinite Loop
     while(1) {
         // Check SS1 state
         ss1 = GPIO_getInputPinValue(GPIO_PORT_P3, GPIO_PIN5);
 
-        if (ss1 == 1) { // SS1 is on
-            // Has Pattern Started?
+        if (ss1 == 1) {
             if (status_Sequence() == 100) {
                 run_Sequence();
 
-                GPIO_setOutputLowOnPin(GPIO_PORT_P6, GPIO_PIN0);   // Turn BiLED1 Green
+                GPIO_setOutputLowOnPin(GPIO_PORT_P6, GPIO_PIN0);   // Turn BiLED1 green
                 GPIO_setOutputHighOnPin(GPIO_PORT_P6, GPIO_PIN1);
 
-                while (status_Sequence() != 100) {}
+                while (status_Sequence() != 100) {}                // Wait for sequence to finish
 
-                GPIO_setOutputLowOnPin(GPIO_PORT_P6, GPIO_PIN1);
-                GPIO_setOutputHighOnPin(GPIO_PORT_P6, GPIO_PIN0);    // Turn BiLED1 Red
+                // At this point, sequence has been finished
+
+                GPIO_setOutputLowOnPin(GPIO_PORT_P6, GPIO_PIN1);    // Turn BiLED1 red
+                GPIO_setOutputHighOnPin(GPIO_PORT_P6, GPIO_PIN0);
 
                 clear_Sequence();
             }
-        } else { // SS2 is Off
-            // Turn BiLED OFF
-            GPIO_setOutputHighOnPin(GPIO_PORT_P6, GPIO_PIN0);
+        } else {
+            GPIO_setOutputHighOnPin(GPIO_PORT_P6, GPIO_PIN0);   // Turn BiLED1 off
             GPIO_setOutputHighOnPin(GPIO_PORT_P6, GPIO_PIN1);
 
-            // Any BMPx Pressed?
+            // Any BMPx pressed?
             bmp0 = !(GPIO_getInputPinValue(GPIO_PORT_P4, GPIO_PIN0));
             bmp1 = !(GPIO_getInputPinValue(GPIO_PORT_P4, GPIO_PIN2));
             bmp2 = !(GPIO_getInputPinValue(GPIO_PORT_P4, GPIO_PIN3));
             bmp3 = !(GPIO_getInputPinValue(GPIO_PORT_P4, GPIO_PIN5));
             bmp4 = !(GPIO_getInputPinValue(GPIO_PORT_P4, GPIO_PIN6));
             bmp5 = !(GPIO_getInputPinValue(GPIO_PORT_P4, GPIO_PIN7));
-
             if (bmp0 || bmp1 || bmp2 || bmp3 || bmp4 || bmp5) {
                 __delay_cycles(480e3);
                 if (bmp0) {
@@ -156,15 +154,22 @@ void ControlSystem() {
                     record_Segment(2);
                     __delay_cycles(480e3);
                 }
+
+                // Toggle states of LEDFR/LEDFL
                 GPIO_toggleOutputOnPin(GPIO_PORT_P8, GPIO_PIN0 | GPIO_PIN5);
-                __delay_cycles(480e3);
-            } else { // No
-                // PB1 Pressed?
+
+                // Wait for BMP release
+                while (bmp0 || bmp1 || bmp2 || bmp3 || bmp4 || bmp5) {}
+
+            } else {
                 pb1 = GPIO_getInputPinValue(GPIO_PORT_P5, GPIO_PIN6);
-                if (pb1) { // Yes
+                if (pb1) {
                     __delay_cycles(480e3);
-                    pop_Segment();  // Remove Last Segment
+                    pop_Segment();
                     __delay_cycles(480e3);
+
+                    // Wait for PB1 release
+                    while (pb1) {}
                 }
             }
         }
