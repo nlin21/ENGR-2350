@@ -17,6 +17,7 @@
 // Add function prototypes here, as needed.
 void Timer_Init();
 void GPIO_Init();
+void UpdateTime();
 
 // Add global variables here, as needed.
 Timer_A_UpModeConfig timer_config;
@@ -43,12 +44,12 @@ int main (void) /** Main Function **/
             GPIO_toggleOutputOnPin(GPIO_PORT_P2, GPIO_PIN4);
             counter++;
             Timer_A_clearInterruptFlag(TIMER_A1_BASE);
+            UpdateTime();
         }
         if (counter == 10) {
             GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN0);
             counter = 0;
         }
-
     }   
 }   
 
@@ -56,9 +57,10 @@ int main (void) /** Main Function **/
 void Timer_Init() {
     timer_config.clockSource = TIMER_A_CLOCKSOURCE_SMCLK;
     timer_config.clockSourceDivider = TIMER_A_CLOCKSOURCE_DIVIDER_32;
+    timer_config.timerPeriod = 0.01 / (1.0 / (3.0/4.0 * pow(10,6)));
 
-    // timer increments at a rate of 24/32 MHz = 3/4 MHz
-    timer_config.timerPeriod = (3/4 * pow(10,6) * 1000);
+    // timer_config.clockSourceDivider = TIMER_A_CLOCKSOURCE_DIVIDER_64;
+    // timer_config.timerPeriod = 0.01 / (1.0 / (1.0/2.0 * pow(10,6)));
 
     Timer_A_configureUpMode(TIMER_A1_BASE, &timer_config);
     Timer_A_startCounter(TIMER_A1_BASE, TIMER_A_UP_MODE);
