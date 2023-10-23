@@ -85,7 +85,7 @@ void Encoder_ISR() {
         Timer_A_clearInterruptFlag(TIMER_A3_BASE);
         enc_counts_track += 65536;
     }
-    if (Timer_A_getCaptureCompareEnabledInterruptStatus(TIMER_A3_BASE, TIMER_A_CAPTURECOMPARE_REGISTER_0) == TIMER_A_CAPTURECOMPARE_INTERRUPT_FLAG) {
+    if (Timer_A_getCaptureCompareEnabledInterruptStatus(TIMER_A3_BASE, TIMER_A_CAPTURECOMPARE_REGISTER_0) & TIMER_A_CAPTURECOMPARE_INTERRUPT_FLAG) {
         Timer_A_clearCaptureCompareInterrupt(TIMER_A3_BASE, TIMER_A_CAPTURECOMPARE_REGISTER_0);
         enc_total++;
         capture_value = Timer_A_getCaptureCompareCount(TIMER_A3_BASE, TIMER_A_CAPTURECOMPARE_REGISTER_0);
