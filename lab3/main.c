@@ -11,17 +11,20 @@
 // We'll always add this include statement. This basically takes the
 // code contained within the "engr_2350_msp432.h" file and adds it here.
 #include "engr2350_msp432.h"
+#include <math.h>
 
 // Add function prototypes here, as needed.
 void GPIO_Init();
 void Timer_Init();
 void CCR_ISR();
+void DriveStraight(uint16_t target_distance);
+void Turn(uint16_t turn_distance, int8_t direction);
 
 // Add global variables here, as needed.
 Timer_A_UpModeConfig timer_config_PWM;          // Timer to generate PWM at 30 kHz
 Timer_A_CompareModeConfig CCR_three, CCR_four;  // CCR_three: right motor, CCR_four: left motor
-uint16_t CCR_three_compareValue = 100;
-uint16_t CCR_four_compareValue = 100;           // Give initial speed to allow a capture interrupt
+uint16_t CCR_three_compareValue = 200;
+uint16_t CCR_four_compareValue = 200;           // Give initial speed to allow a capture interrupt
 
 Timer_A_ContinuousModeConfig timer_config_ENC;  // Timer for encoders to detect speed
 Timer_A_CaptureModeConfig CCR_zero, CCR_one;    // CCR_zero: right motor, CCR_one: left motor
@@ -43,6 +46,8 @@ int32_t wheel_speed_sum_R;
 int32_t wheel_speed_counts_R;
 
 int32_t setpoint = 65000;
+uint8_t WHEEL_RADIUS_IN_MM = 35;
+uint16_t distance;
 
 int main (void) /** Main Function **/
 {  
@@ -59,6 +64,32 @@ int main (void) /** Main Function **/
     while(1)
     {  
         // Place code that runs continuously in here
+
+        // Uncomment for which path
+
+//        // R
+//        DriveStraight(1830);
+//        Turn(149/2*(M_PI/2),1);
+//        DriveStraight(860);
+//        Turn(149/2*(M_PI/2),1);
+//        DriveStraight(860);
+//        Turn(149/2*(M_PI/2),1);
+//        DriveStraight(860);
+//        Turn(149/2*(M_PI/2+M_PI/4),0);
+//        DriveStraight(1300);
+//        break;
+
+//        // I
+//        DriveStraight(860);
+//        Turn(149/2*M_PI,1);
+//        DriveStraight(430);
+//        Turn(149/2*(M_PI/2),1);
+//        DriveStraight(1830);
+//        Turn(149/2*(M_PI/2),0);
+//        DriveStraight(430);
+//        Turn(149/2*M_PI,1);
+//        DriveStraight(860);
+//        break;
     }   
 }   
 
@@ -67,7 +98,8 @@ void GPIO_Init() {
     GPIO_setAsOutputPin(GPIO_PORT_P5, GPIO_PIN4 | GPIO_PIN5);                   // Direction. P5.4: left motor, P5.5: right motor
     GPIO_setOutputLowOnPin(GPIO_PORT_P5, GPIO_PIN4 | GPIO_PIN5);                // Wheels will rotate forward if Direction is low
 
-    GPIO_setOutputHighOnPin(GPIO_PORT_P3, GPIO_PIN7 | GPIO_PIN3);               // Enable. P3.7: left motor, P3.6, right motor
+    GPIO_setAsOutputPin(GPIO_PORT_P3, GPIO_PIN7 | GPIO_PIN6);               // Enable. P3.7: left motor, P3.6, right motor
+    GPIO_setOutputLowOnPin(GPIO_PORT_P3, GPIO_PIN7 | GPIO_PIN6);
 
     GPIO_setAsPeripheralModuleFunctionOutputPin(GPIO_PORT_P2,                   // Speed
                                                 GPIO_PIN7 | GPIO_PIN6,          // P2.7: left motor, P2.6: right motor
@@ -128,6 +160,41 @@ void Timer_Init() {
     Timer_A_startCounter(TIMER_A0_BASE, TIMER_A_UP_MODE);
 }
 
+void DriveStraight(uint16_t target_distance) {
+    setpoint = 65000;
+    GPIO_setOutputHighOnPin(GPIO_PORT_P3, GPIO_PIN7 | GPIO_PIN6);
+    enc_total_L = 0;
+    enc_total_R = 0;
+    distance = (1.0/360) * enc_total_L * (2 * M_PI * WHEEL_RADIUS_IN_MM);
+    while (distance < target_distance) {
+        distance = (1.0/360) * enc_total_L * (2 * M_PI * WHEEL_RADIUS_IN_MM);
+    }
+    GPIO_setOutputLowOnPin(GPIO_PORT_P3, GPIO_PIN7 | GPIO_PIN6);
+}
+
+void Turn(uint16_t turn_distance, int8_t direction) {
+    setpoint = 100000;
+    GPIO_setOutputHighOnPin(GPIO_PORT_P3, GPIO_PIN7 | GPIO_PIN6);
+    enc_total_L = 0;
+    enc_total_R = 0;
+    distance = (1.0/360) * enc_total_L * (2 * M_PI * WHEEL_RADIUS_IN_MM);
+    if (direction == 0) {   // Left
+        GPIO_setOutputLowOnPin(GPIO_PORT_P5, GPIO_PIN5);
+        GPIO_setOutputHighOnPin(GPIO_PORT_P5, GPIO_PIN4);
+        while (distance < turn_distance) {
+            distance = (1.0/360) * enc_total_L * (2 * M_PI * WHEEL_RADIUS_IN_MM);
+        }
+    } else if (direction == 1) {    // Right
+        GPIO_setOutputLowOnPin(GPIO_PORT_P5, GPIO_PIN4);
+        GPIO_setOutputHighOnPin(GPIO_PORT_P5, GPIO_PIN5);
+        while (distance < turn_distance) {
+            distance = (1.0/360) * enc_total_R * (2 * M_PI * WHEEL_RADIUS_IN_MM);
+        }
+    }
+    GPIO_setOutputLowOnPin(GPIO_PORT_P5, GPIO_PIN5 | GPIO_PIN4);
+    GPIO_setOutputLowOnPin(GPIO_PORT_P3, GPIO_PIN7 | GPIO_PIN6);
+}
+
 // Add interrupt functions last so they are easy to find
 void CCR_ISR() {
     if (Timer_A_getEnabledInterruptStatus(TIMER_A3_BASE) == TIMER_A_INTERRUPT_PENDING) {
@@ -156,7 +223,7 @@ void CCR_ISR() {
                                     CCR_three_compareValue);
             wheel_speed_sum_L = 0;
             wheel_speed_counts_L = 0;
-            printf("Right: %u, Left: %u\r\n", CCR_three_compareValue, CCR_four_compareValue);
+            //printf("Right: %u, Left: %u\r\n", CCR_three_compareValue, CCR_four_compareValue);
         }
     }
     if (Timer_A_getCaptureCompareEnabledInterruptStatus(TIMER_A3_BASE, TIMER_A_CAPTURECOMPARE_REGISTER_1) & TIMER_A_CAPTURECOMPARE_INTERRUPT_FLAG) {
@@ -180,7 +247,7 @@ void CCR_ISR() {
                                     CCR_four_compareValue);
             wheel_speed_sum_R = 0;
             wheel_speed_counts_R = 0;
-            printf("Right: %u, Left: %u\r\n", CCR_three_compareValue, CCR_four_compareValue);
+            //printf("Right: %u, Left: %u\r\n", CCR_three_compareValue, CCR_four_compareValue);
         }
     }
 }
