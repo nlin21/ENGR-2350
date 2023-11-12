@@ -42,15 +42,20 @@ int32_t Tach_R_count,Tach_R,Tach_R_sum,Tach_R_sum_count,Tach_R_avg; // Right whe
 
 uint8_t run_control = 0; // Flag to denote that 100ms has passed and control should be run.
 
-uint16_t pot_val;
-uint16_t desired_speed, current_speed_L, current_speed_R;
+uint8_t state = 0;
+uint16_t pot_val_speed, pot_val_length_and_radius;
+uint16_t desired_speed, desired_speed_L, desired_speed_R;
+uint16_t straightaway_length, turn_radius, differential_speed;
+uint16_t current_speed_L, current_speed_R, distance_travelled;
 int32_t error_sum_L = 0;
 int32_t error_sum_R = 0;
 int16_t pwm_max = 720; // Maximum limit on PWM output
 int16_t pwm_min = 80; // Minimum limit on PWM output
 int16_t pwm_set_L = 100;
 int16_t pwm_set_R = 100;
-float ki = 0.1;
+uint8_t DISTANCE_BETWEEN_WHEELS_IN_MM = 149;
+uint8_t WHEEL_RADIUS_IN_MM = 35;
+float ki = 0.25;
 
 int main(void)
 {
@@ -67,9 +72,47 @@ int main(void)
             run_control = 0;    // Reset the 100 ms flag
             // Control routine ... Explicity follow pseudocode from Lab document
 
+            distance_travelled = 0.00277777777 * enc_total_L * (2 * M_PI * WHEEL_RADIUS_IN_MM);
+            if (state == 0) {
+                if (distance_travelled / 25.4 > straightaway_length) {
+                    state = 1;
+                    distance_travelled = 0;
+                    enc_total_L = 0;
+                    enc_total_R = 0;
+                }
+            }
+
+            if (state == 1) {
+                if (distance_travelled / 25.4 > M_PI * (turn_radius + 2.93307086614)) {
+                    state = 0;
+                    distance_travelled = 0;
+                    enc_total_L = 0;
+                    enc_total_R = 0;
+                }
+            }
+
             ADC14_toggleConversionTrigger();
             while (ADC14_isBusy());
-            pot_val = ADC14_getResult(ADC_MEM0);
+            pot_val_speed = ADC14_getResult(ADC_MEM0);
+            pot_val_length_and_radius = ADC14_getResult(ADC_MEM1);
+            desired_speed = 0.01953125 * pot_val_speed + 80;
+            straightaway_length = 0.00457763671 * pot_val_length_and_radius + 20;
+            turn_radius = 0.00622558593 * pot_val_length_and_radius + 15;
+
+            // For Part B - add in missing pieces!
+//                <-- Start Turning Control -->
+//                if turning:
+//                    From turn radius, calculate the differential speed
+//                otherwise:
+//                    Set differential speed to 0
+//                <-- End Turning Control -->
+
+
+            if (state == 1) {
+                differential_speed = desired_speed * (0.5 * (DISTANCE_BETWEEN_WHEELS_IN_MM / 25.4) / (turn_radius-2.93307086614));
+            } else {
+                differential_speed = 0;
+            }
 
             // For Part A, do:
 //                Convert the speed potentiometer to a desired speed
@@ -90,31 +133,33 @@ int main(void)
 //                    apply the compare value
 //                <-- End Wheel Speed Control -->
 
-            desired_speed = (320/pow(2,14)) * pot_val + 80;
-            if (desired_speed < 80) {
-                desired_speed = 0;
+            desired_speed_L = desired_speed + differential_speed;
+            desired_speed_R = desired_speed - differential_speed;
+            if (desired_speed_L < 80) {
+                desired_speed_L = 0;
                 pwm_set_L = 0;
-                pwm_set_R = 0;
             } else {
-                current_speed_L = 1500000 / Tach_L * 8;
-                error_sum_L += (desired_speed - current_speed_L);
-                pwm_set_L = desired_speed + ki * error_sum_L;
+                current_speed_L = 1500000.0 / Tach_L_avg * 8;
+                error_sum_L += (desired_speed_L - current_speed_L);
+                pwm_set_L = desired_speed_L + ki * error_sum_L;
                 if(pwm_set_L > pwm_max) pwm_set_L = pwm_max;
                 if(pwm_set_L < pwm_min) pwm_set_L = pwm_min;
-
-                current_speed_R = 1500000 / Tach_R * 8;
-                error_sum_R += (desired_speed - current_speed_R);
-                pwm_set_R = desired_speed + ki * error_sum_R;
+            }
+            if (desired_speed_R < 80) {
+                desired_speed_R = 0;
+                pwm_set_R = 0;
+            } else {
+                current_speed_R = 1500000.0 / Tach_R_avg * 8;
+                error_sum_R += (desired_speed_R - current_speed_R);
+                pwm_set_R = desired_speed_R + ki * error_sum_R;
                 if(pwm_set_R > pwm_max) pwm_set_R = pwm_max;
                 if(pwm_set_R < pwm_min) pwm_set_R = pwm_min;
-
-                printf("Current_L: %u, Current_R: %u\r\n", current_speed_L, current_speed_R);
-
             }
+            //printf("Current_L: %u, Current_R: %u, State: %u, Tach_L: %u, Tach_R: %u\r\n", current_speed_L, current_speed_R, state, Tach_L, Tach_R);
+            //printf("State: %u, Distance Travelled: %u, Straightaway Length: %u, Turn Radius: %u\r\n", state, distance_travelled, straightaway_length, turn_radius);
+            //printf("State: %u, Distance Travelled: %u\r\n", state, distance_travelled);
             Timer_A_setCompareValue(TIMER_A0_BASE,TIMER_A_CAPTURECOMPARE_REGISTER_4,pwm_set_L);
             Timer_A_setCompareValue(TIMER_A0_BASE,TIMER_A_CAPTURECOMPARE_REGISTER_3,pwm_set_R);
-
-            // For Part B - add in missing pieces!
         }
     }
 }
@@ -130,7 +175,6 @@ void ADCInit(){
     ADC14_configureMultiSequenceMode(ADC_MEM0, ADC_MEM1, false);
     ADC14_enableSampleTimer(ADC_MANUAL_ITERATION);
     ADC14_enableConversion();
-
 }
 
 void GPIOInit(){
