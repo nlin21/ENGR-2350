@@ -47,6 +47,8 @@ uint16_t pot_val_speed, pot_val_length_and_radius;
 uint16_t desired_speed, desired_speed_L, desired_speed_R;
 uint16_t straightaway_length, turn_radius, differential_speed;
 uint16_t current_speed_L, current_speed_R, distance_travelled;
+uint16_t distance_turn_avg, left_t, right_t;
+uint16_t distance_straight_avg, left_s, right_s;
 int32_t error_sum_L = 0;
 int32_t error_sum_R = 0;
 int16_t pwm_max = 720; // Maximum limit on PWM output
@@ -74,18 +76,25 @@ int main(void)
 
             distance_travelled = 0.00277777777 * enc_total_L * (2 * M_PI * WHEEL_RADIUS_IN_MM);
             if (state == 0) {
-                if (distance_travelled / 25.4 > straightaway_length) {
+                left_s = 0.00277777777 * enc_total_L * (2 * M_PI * WHEEL_RADIUS_IN_MM);
+                right_s = 0.00277777777 * enc_total_R * (2 * M_PI * WHEEL_RADIUS_IN_MM);
+                distance_straight_avg = (left_s + right_s) / 2;
+                if (distance_straight_avg / 25.4 > straightaway_length) {
                     state = 1;
                     distance_travelled = 0;
+                    distance_straight_avg = 0;
                     enc_total_L = 0;
                     enc_total_R = 0;
                 }
             }
 
             if (state == 1) {
-                if (distance_travelled / 25.4 > M_PI * (turn_radius + 2.93307086614)) {
+                left_t = 0.00277777777 * enc_total_L * (2 * M_PI * WHEEL_RADIUS_IN_MM);
+                right_t = 0.00277777777 * enc_total_R * (2 * M_PI * WHEEL_RADIUS_IN_MM);
+                distance_turn_avg = (left_t + right_t) / 2;
+                if (distance_turn_avg / 25.4 > M_PI * (turn_radius)) {
                     state = 0;
-                    distance_travelled = 0;
+                    distance_turn_avg = 0;
                     enc_total_L = 0;
                     enc_total_R = 0;
                 }
@@ -109,7 +118,7 @@ int main(void)
 
 
             if (state == 1) {
-                differential_speed = desired_speed * (0.5 * (DISTANCE_BETWEEN_WHEELS_IN_MM / 25.4) / (turn_radius-2.93307086614));
+                differential_speed = desired_speed * (0.5 * (DISTANCE_BETWEEN_WHEELS_IN_MM / 25.4) / turn_radius);
             } else {
                 differential_speed = 0;
             }
