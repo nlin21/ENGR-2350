@@ -144,10 +144,11 @@ uint16_t readRanger() {
     I2C_readData(EUSCI_B0_BASE, 0x70, 2, arry, 2);
     result = arry[0] * 256 + arry[1];
     range = result;
+
     arry[0] = 0x51;
     I2C_writeData(EUSCI_B0_BASE, 0x70, 0, arry, 1);
 
-    return range;
+    return result;
 }
 
 // Add interrupt functions last so they are easy to find
