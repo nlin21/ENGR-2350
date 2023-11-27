@@ -48,22 +48,27 @@ int32_t Tach_R_count,Tach_R,Tach_R_sum,Tach_R_sum_count,Tach_R_avg; // Right whe
     // The rest are the intermediate variables used to assemble Tach_L_avg
 
 uint8_t run_control = 0; // Flag to denote that 100ms has passed and control should be run.
-uint8_t tracker = 0; // Tracker for 10s.
+uint8_t tracker_10s = 0; // Tracker for 10s.
+
+uint16_t desired_heading, measured_heading;
+int16_t heading_error;
 
 uint16_t desired_distance = 60; // 60 cm
 int16_t desired_speed, desired_speed_L, desired_speed_R;
+int16_t differential_speed = 0;
 int16_t current_speed_L, current_speed_R;
-
 int32_t error_sum_L = 0;
 int32_t error_sum_R = 0;
 int16_t pwm_max = 400; // Maximum limit on PWM output
 int16_t pwm_min = 100; // Minimum limit on PWM output
 int16_t pwm_set_L = 0;
 int16_t pwm_set_R = 0;
+
 uint8_t DISTANCE_BETWEEN_WHEELS_IN_MM = 149;
 uint8_t WHEEL_RADIUS_IN_MM = 35;
-float ki = 0.2;
-float kp = -7;
+float ki = 0.1;
+float kp_distance = -7;
+float kp_steering = 1;
 
 int main(void)
 {
@@ -71,23 +76,38 @@ int main(void)
     GPIOInit();
     I2CInit();
     TimerInit();
+    srand(1000000);
+    desired_heading = rand() % 3600;
 
     __delay_cycles(24e6);
     GPIO_setOutputHighOnPin(GPIO_PORT_P3,GPIO_PIN6|GPIO_PIN7);
 
     while(1){
+        if (tracker_10s == 100) {
+            desired_heading = rand() % 3600;
+            tracker_10s = 0;
+        }
         if (run_control) {
             // Start distance control
-            run_control = 0;
             readRanger();
-            __delay_cycles(2.4e6); // Wait 1/10 of a second
-            desired_speed = kp * (desired_distance - range);
+            desired_speed = kp_distance * (desired_distance - range);
+            // End distance control
 
-            printf("desired_speed: %d\r\n", desired_speed);
+            // Start heading control
+            measured_heading = readCompass();
+            heading_error = desired_heading - measured_heading;
+            if (heading_error > 1800) {
+                heading_error -= 3600;
+            }
+            if (heading_error < -1800) {
+                heading_error += 3600;
+            }
+            differential_speed = kp_steering * heading_error;
+            // End heading control
 
             // Start wheel speed control
-            desired_speed_L = desired_speed;
-            desired_speed_R = desired_speed;
+            desired_speed_L = desired_speed + differential_speed;
+            desired_speed_R = desired_speed - differential_speed;
             if (abs(desired_speed_L) < pwm_min) {
                 desired_speed_L = 0;
                 pwm_set_L = 0;
@@ -101,11 +121,9 @@ int main(void)
                 } else if (pwm_set_L < 0) {
                     GPIO_setOutputHighOnPin(GPIO_PORT_P5,GPIO_PIN4);  // Reverse
                 }
-
                 pwm_set_L = abs(pwm_set_L);
                 if(pwm_set_L > pwm_max) pwm_set_L = pwm_max;
                 if(pwm_set_L < pwm_min) pwm_set_L = pwm_min;
-
             }
             if (abs(desired_speed_R) < pwm_min) {
                 desired_speed_R = 0;
@@ -120,14 +138,14 @@ int main(void)
                 } else if (pwm_set_R < 0) {
                     GPIO_setOutputHighOnPin(GPIO_PORT_P5,GPIO_PIN5);  // Reverse
                 }
-
                 pwm_set_R = abs(pwm_set_R);
                 if(pwm_set_R > pwm_max) pwm_set_R = pwm_max;
                 if(pwm_set_R < pwm_min) pwm_set_R = pwm_min;
-
             }
             Timer_A_setCompareValue(TIMER_A0_BASE,TIMER_A_CAPTURECOMPARE_REGISTER_4,pwm_set_L);
             Timer_A_setCompareValue(TIMER_A0_BASE,TIMER_A_CAPTURECOMPARE_REGISTER_3,pwm_set_R);
+            run_control = 0;
+            tracker_10s++;
         }
     }
 }
